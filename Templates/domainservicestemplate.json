@@ -143,7 +143,54 @@
                     }
                 ]
             }
+        },
+        {
+            "type":"Microsoft.Resources/deployments",
+            "apiVersion": "2019-05-01",
+            "name":"nestedDnsUpdate",
+            "dependsOn":[
+                "[parameters('domainName')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources":[
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "name": "[parameters('vnetName')]",
+                            "location": "[parameters('location')]",
+                            "apiVersion": "2019-09-01",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": "[parameters('vnetAddressPrefixes')]"
+                                },
+                                "dhcpOptions": {
+                                    "dnsServers": "[reference(parameters('domainName')).domainControllerIpAddress]"
+                                },
+                                "subnets": [
+                                    {
+                                        "name": "[parameters('subnetName')]",
+                                        "properties": {
+                                            "addressPrefix": "[parameters('subnetAddressPrefix')]",
+                                            "networkSecurityGroup": {
+                                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/NetworkSecurityGroups/', parameters('nsgName'))]"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
         }
     ],
-    "outputs": {}
+    "outputs": {
+        "dnsServes" : {
+            "type": "array",
+            "value": "[reference(parameters('domainName')).domainControllerIpAddress]"
+        }
+    }
 }
