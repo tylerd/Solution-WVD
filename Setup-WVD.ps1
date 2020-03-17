@@ -1,4 +1,4 @@
-#Requires -Modules Microsoft.RDInfra.RDPowerShell
+#Requires -Modules Microsoft.RDInfra.RDPowerShell, AzureAD
 
 [CmdletBinding()]
 param (
@@ -18,11 +18,25 @@ param (
     $OwnerUpn
 )
 
+$ErrorActionPreference = "Stop"
+
 ## Create WVD Tenant
 
 Add-RdsAccount -DeploymentUrl "https://rdbroker.wvd.microsoft.com"
 
-New-RdsTenant -Name $WvdTenantName -AadTenantId $AadTenantId -AzureSubscriptionId $AzureSubscriptionId
+$RdsTenant = Get-RdsTenant -TenantName $WvdTenantName -ErrorAction SilentlyContinue
+
+if($RdsTenant) {
+    Write-Host "Tenant Exists"
+}
+else {
+    Write-Host "Creating new Tenant"
+    $RdsTenant = New-RdsTenant -Name $WvdTenantName -AadTenantId $AadTenantId -AzureSubscriptionId $AzureSubscriptionId
+}
+
+Write-Host "Adding RDS Owner Role Assignment to $OwnerUpn"
 
 New-RdsRoleAssignment -TenantName $WvdTenantName -SignInName $OwnerUpn -RoleDefinitionName "RDS Owner"
+
+
 
